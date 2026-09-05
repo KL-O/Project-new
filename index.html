@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Idea Generator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="page-header">
+    <h1>Content Idea Generator</h1>
+    <p class="subtitle">Never wonder what to post again. Type your niche, get 8 ready-to-film ideas.</p>
+  </header>
+
+  <main class="container">
+    <section class="input-card">
+      <label for="nicheInput">What's your content about?</label>
+      <div class="input-row">
+        <input type="text" id="nicheInput" placeholder="e.g. skincare, personal finance, cooking, fitness..." />
+        <button id="generateBtn" type="button">Generate Ideas</button>
+      </div>
+      <div class="chips" id="exampleChips"></div>
+    </section>
+
+    <section class="results-header">
+      <h2>Ideas</h2>
+      <button id="regenerateBtn" type="button" class="secondary-btn" hidden>↻ New Set</button>
+    </section>
+
+    <p id="emptyState" class="empty-state">Type a niche above and hit "Generate Ideas" to get started.</p>
+    <div id="ideasGrid" class="ideas-grid"></div>
+
+    <section class="saved-section">
+      <h2>Saved Ideas <span id="savedCount" class="saved-count"></span></h2>
+      <p id="savedEmpty" class="empty-state">Ideas you save will show up here.</p>
+      <div id="savedList" class="saved-list"></div>
+    </section>
+  </main>
+
+  <script src="js/ideaEngine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
