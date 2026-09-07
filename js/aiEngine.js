@@ -9,7 +9,7 @@
 // local template engine.
 const AI_WORKER_URL = 'https://content-idea-generator-api.kevinluvaotero.workers.dev/';
 
-async function generateIdeasAI(niche, profile) {
+async function generateIdeasAI(niche, profile, count) {
   if (!AI_WORKER_URL) return null;
 
   try {
@@ -24,7 +24,8 @@ async function generateIdeasAI(niche, profile) {
         niche,
         vibe: profile?.vibe || '',
         tone: profile?.tone || '',
-        aboutYou: profile?.aboutYou || ''
+        aboutYou: profile?.aboutYou || '',
+        count
       })
     });
 

@@ -10,6 +10,7 @@ const regenerateBtn = document.getElementById('regenerateBtn');
 const ideasGrid = document.getElementById('ideasGrid');
 const emptyState = document.getElementById('emptyState');
 const exampleChips = document.getElementById('exampleChips');
+const countButtons = document.querySelectorAll('.count-btn');
 const savedList = document.getElementById('savedList');
 const savedEmpty = document.getElementById('savedEmpty');
 const savedCount = document.getElementById('savedCount');
@@ -22,6 +23,7 @@ const vibeSavedMsg = document.getElementById('vibeSavedMsg');
 let lastShownIds = []; // just the immediately previous batch (hard-avoid, even on pool reset)
 let shownIds = []; // everything shown so far this session for the current niche (soft-avoid)
 let currentNiche = '';
+let ideaCount = 6;
 
 const SAVED_KEY = 'contentIdeaGenerator.savedIdeas';
 const PROFILE_KEY = 'contentIdeaGenerator.profile';
@@ -118,11 +120,11 @@ function setGenerating(isGenerating) {
 
 async function getIdeas(niche, excludeIds, hardExcludeIds) {
   const profile = getProfile();
-  const aiIdeas = await window.AiEngine.generateIdeasAI(niche, profile);
+  const aiIdeas = await window.AiEngine.generateIdeasAI(niche, profile, ideaCount);
   if (aiIdeas) return aiIdeas;
   // AI unavailable (no key configured yet, network issue, rate limited) —
   // fall back to the local template engine so generation never breaks.
-  return window.IdeaEngine.generateIdeas(niche, 8, excludeIds, profile, hardExcludeIds);
+  return window.IdeaEngine.generateIdeas(niche, ideaCount, excludeIds, profile, hardExcludeIds);
 }
 
 async function runGenerate(niche) {
@@ -207,6 +209,14 @@ nicheInput.addEventListener('keydown', (e) => {
 });
 
 regenerateBtn.addEventListener('click', runRegenerate);
+
+countButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    countButtons.forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    ideaCount = parseInt(btn.dataset.count, 10);
+  });
+});
 
 // Your Vibe: optional personal profile that biases which idea formats get
 // picked and personalizes a couple of tips per generation.

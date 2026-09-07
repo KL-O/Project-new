@@ -242,6 +242,59 @@ body::before {
   margin: 10px 0 0;
 }
 
+.count-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.count-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.count-options {
+  display: flex;
+  gap: 6px;
+}
+
+.count-btn {
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  color: var(--ink-dim);
+  border-radius: 999px;
+  min-width: 38px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out), background 160ms var(--ease-out);
+}
+
+.count-btn:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.count-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.count-btn:active {
+  transform: scale(0.95);
+}
+
+.count-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -440,6 +493,7 @@ body::before {
 .idea-card:nth-child(6) { animation-delay: 200ms; }
 .idea-card:nth-child(7) { animation-delay: 240ms; }
 .idea-card:nth-child(8) { animation-delay: 280ms; }
+.idea-card:nth-child(9) { animation-delay: 320ms; }
 
 .idea-category {
   color: var(--accent-2);
