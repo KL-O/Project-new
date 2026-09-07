@@ -111,18 +111,36 @@ function getProfile() {
   }
 }
 
-function runGenerate(niche) {
+function setGenerating(isGenerating) {
+  generateBtn.disabled = isGenerating;
+  generateBtn.textContent = isGenerating ? 'Generating…' : 'Generate Ideas';
+}
+
+async function getIdeas(niche, excludeIds, hardExcludeIds) {
+  const profile = getProfile();
+  const aiIdeas = await window.AiEngine.generateIdeasAI(niche, profile);
+  if (aiIdeas) return aiIdeas;
+  // AI unavailable (no key configured yet, network issue, rate limited) —
+  // fall back to the local template engine so generation never breaks.
+  return window.IdeaEngine.generateIdeas(niche, 8, excludeIds, profile, hardExcludeIds);
+}
+
+async function runGenerate(niche) {
   currentNiche = niche;
   shownIds = [];
-  const ideas = window.IdeaEngine.generateIdeas(niche, 8, shownIds, getProfile(), lastShownIds);
+  setGenerating(true);
+  const ideas = await getIdeas(niche, shownIds, lastShownIds);
+  setGenerating(false);
   shownIds = ideas.map((i) => i.id);
   lastShownIds = shownIds.slice();
   renderIdeas(ideas);
 }
 
-function runRegenerate() {
+async function runRegenerate() {
   if (!currentNiche) return;
-  const ideas = window.IdeaEngine.generateIdeas(currentNiche, 8, shownIds, getProfile(), lastShownIds);
+  setGenerating(true);
+  const ideas = await getIdeas(currentNiche, shownIds, lastShownIds);
+  setGenerating(false);
   shownIds = [...new Set([...shownIds, ...ideas.map((i) => i.id)])];
   lastShownIds = ideas.map((i) => i.id);
   renderIdeas(ideas);

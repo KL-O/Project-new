@@ -1,0 +1,12 @@
+name = "content-idea-generator-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# After creating a KV namespace in the Cloudflare dashboard, replace this
+# id with the one Cloudflare gives you.
+kv_namespaces = [
+  { binding = "RATE_LIMIT_KV", id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID" }
+]
+
+# The ANTHROPIC_API_KEY secret is NOT set here — add it via the Cloudflare
+# dashboard or `wrangler secret put ANTHROPIC_API_KEY`, never in this file.
