@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUT Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="page-header">
+    <h1>Turn any look into a <span class="highlight">LUT</span></h1>
+    <p class="subtitle">Upload a reference photo — get a real .cube file built from its actual color, not a preset off a shelf.</p>
+  </header>
+
+  <main class="container">
+    <section class="upload-card" id="uploadCard">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a reference image">
+        <input type="file" id="refFileInput" accept="image/*" hidden />
+        <div class="dropzone-content" id="dropzoneEmpty">
+          <div class="dropzone-icon">＋</div>
+          <p class="dropzone-title">Drop a reference image, or click to browse</p>
+          <p class="dropzone-sub">A screenshot, a movie still, a photo with the look you want</p>
+        </div>
+        <img id="refPreviewImg" class="ref-preview-img" hidden alt="Reference image preview" />
+      </div>
+      <button id="changeRefBtn" type="button" class="secondary-btn" hidden>Change image</button>
+    </section>
+
+    <section class="result-section" id="resultSection" hidden>
+      <div class="compare-card">
+        <h2>Before / After</h2>
+        <p class="compare-sub">Previewing on <span id="previewSourceLabel">your reference image</span>. <button id="uploadOwnPhotoBtn" type="button" class="link-btn">Preview on a different photo</button></p>
+        <input type="file" id="previewFileInput" accept="image/*" hidden />
+        <div class="compare-frame" id="compareFrame">
+          <canvas id="beforeCanvas"></canvas>
+          <canvas id="afterCanvas" class="after-canvas"></canvas>
+          <div class="compare-handle" id="compareHandle"></div>
+          <input type="range" id="compareSlider" class="compare-slider" min="0" max="100" value="50" aria-label="Before/after comparison" />
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <h2>Settings</h2>
+        <p class="settings-sub">What the LUT actually does, in plain English — punch these in by hand if you'd rather not import a file.</p>
+        <div class="settings-list" id="settingsList"></div>
+
+        <label for="lutNameInput">LUT name</label>
+        <input type="text" id="lutNameInput" placeholder="e.g. Golden Hour Warm" value="My Custom Look" />
+
+        <button id="downloadBtn" type="button" class="download-btn">⬇ Download .cube</button>
+        <p class="download-hint">Drops straight into Premiere, DaVinci Resolve, Lightroom, or CapCut.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/colorMath.js"></script>
+  <script src="js/imageAnalyzer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
