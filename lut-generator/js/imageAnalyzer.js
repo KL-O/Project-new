@@ -74,10 +74,10 @@ function analyzeImage(imgEl) {
   const saturation = clampNum(((avgS - baselineSat) / baselineSat) * 80, -70, 70);
 
   const shadows = shadowCount > 0
-    ? { hue: shadowH / shadowCount, amount: clampNum((shadowS / shadowCount) * 220, 0, 60) }
+    ? { hue: shadowH / shadowCount, amount: clampNum((shadowS / shadowCount) * 90, 0, 35) }
     : { hue: 200, amount: 0 };
   const highlights = highCount > 0
-    ? { hue: highH / highCount, amount: clampNum((highS / highCount) * 220, 0, 60) }
+    ? { hue: highH / highCount, amount: clampNum((highS / highCount) * 90, 0, 35) }
     : { hue: 30, amount: 0 };
 
   return { whiteBalanceKelvin, tint, exposure, contrast, saturation, shadows, highlights };

@@ -68,7 +68,7 @@ function transformPixel(r, g, b, params) {
   const l = luma(clamp01(r), clamp01(g), clamp01(b));
 
   if (params.shadows.amount > 0) {
-    const weight = (1 - l) * (params.shadows.amount / 100) * 0.35;
+    const weight = (1 - l) * (params.shadows.amount / 100) * 0.22;
     const [tr, tg, tb] = hueToRgb(params.shadows.hue);
     r += (tr - 0.5) * weight;
     g += (tg - 0.5) * weight;
@@ -76,7 +76,7 @@ function transformPixel(r, g, b, params) {
   }
 
   if (params.highlights.amount > 0) {
-    const weight = l * (params.highlights.amount / 100) * 0.35;
+    const weight = l * (params.highlights.amount / 100) * 0.22;
     const [tr, tg, tb] = hueToRgb(params.highlights.hue);
     r += (tr - 0.5) * weight;
     g += (tg - 0.5) * weight;
