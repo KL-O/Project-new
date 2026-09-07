@@ -13,11 +13,17 @@ const exampleChips = document.getElementById('exampleChips');
 const savedList = document.getElementById('savedList');
 const savedEmpty = document.getElementById('savedEmpty');
 const savedCount = document.getElementById('savedCount');
+const vibeInput = document.getElementById('vibeInput');
+const toneInput = document.getElementById('toneInput');
+const aboutYouInput = document.getElementById('aboutYouInput');
+const saveVibeBtn = document.getElementById('saveVibeBtn');
+const vibeSavedMsg = document.getElementById('vibeSavedMsg');
 
 let lastShownIds = [];
 let currentNiche = '';
 
 const SAVED_KEY = 'contentIdeaGenerator.savedIdeas';
+const PROFILE_KEY = 'contentIdeaGenerator.profile';
 
 function getSaved() {
   try {
@@ -96,16 +102,24 @@ function renderIdeas(ideas) {
   ideas.forEach((idea) => ideasGrid.appendChild(ideaCard(idea)));
 }
 
+function getProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
+
 function runGenerate(niche) {
   currentNiche = niche;
-  const ideas = window.IdeaEngine.generateIdeas(niche, 8, []);
+  const ideas = window.IdeaEngine.generateIdeas(niche, 8, [], getProfile());
   lastShownIds = ideas.map((i) => i.id);
   renderIdeas(ideas);
 }
 
 function runRegenerate() {
   if (!currentNiche) return;
-  const ideas = window.IdeaEngine.generateIdeas(currentNiche, 8, lastShownIds);
+  const ideas = window.IdeaEngine.generateIdeas(currentNiche, 8, lastShownIds, getProfile());
   lastShownIds = ideas.map((i) => i.id);
   renderIdeas(ideas);
 }
@@ -171,6 +185,29 @@ nicheInput.addEventListener('keydown', (e) => {
 });
 
 regenerateBtn.addEventListener('click', runRegenerate);
+
+// Your Vibe: optional personal profile that biases which idea formats get
+// picked and personalizes a couple of tips per generation.
+function loadVibeForm() {
+  const profile = getProfile();
+  if (!profile) return;
+  vibeInput.value = profile.vibe || '';
+  toneInput.value = profile.tone || '';
+  aboutYouInput.value = profile.aboutYou || '';
+}
+
+saveVibeBtn.addEventListener('click', () => {
+  const profile = {
+    vibe: vibeInput.value.trim(),
+    tone: toneInput.value.trim(),
+    aboutYou: aboutYouInput.value.trim()
+  };
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  vibeSavedMsg.hidden = false;
+  setTimeout(() => { vibeSavedMsg.hidden = true; }, 2000);
+});
+
+loadVibeForm();
 
 // Voice input: speak your niche instead of typing it.
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;

@@ -245,6 +245,44 @@ const IDEA_TEMPLATES = [
   }
 ];
 
+// Maps a "vibe/tone" style category to the template ids that fit it best.
+// Used to bias which templates get picked when the user fills in their
+// personal style profile, instead of pure random selection.
+const TONE_MAP = {
+  funny: ['first-attempt-reaction', 'unpopular-opinion', 'standard-advice-fail', 'roast-my-attempt', 'myth-busting'],
+  motivational: ['almost-quit', 'glow-up', 'month-recap', 'realistic-expectations', 'wish-i-knew'],
+  calm: ['zero-experience-tutorial', 'full-faq', 'explain-simply', 'no-fluff-gear', 'budget-start'],
+  edgy: ['unpopular-opinion', 'standard-advice-fail', 'biggest-mistake', 'first-impression'],
+  wholesome: ['story-day-in-life', 'behind-the-scenes', 'community-question', 'weekly-routine'],
+  energetic: ['7-day-challenge', 'trend-jack', 'full-process', 'two-methods']
+};
+
+const TONE_KEYWORDS = {
+  funny: ['funny', 'sarcastic', 'humor', 'comedic', 'witty', 'silly', 'goofy'],
+  motivational: ['motivational', 'inspiring', 'inspire', 'uplifting', 'encourag'],
+  calm: ['calm', 'informative', 'educational', 'chill', 'relaxed', 'soft-spoken'],
+  edgy: ['edgy', 'bold', 'blunt', 'controversial', 'no-filter', 'unfiltered'],
+  wholesome: ['wholesome', 'relatable', 'heartfelt', 'genuine', 'friendly'],
+  energetic: ['energetic', 'hype', 'high energy', 'excited', 'fast-paced', 'upbeat']
+};
+
+function idsMatchingStyleText(styleText) {
+  const lower = styleText.toLowerCase();
+  const matchedIds = new Set();
+  for (const [tone, keywords] of Object.entries(TONE_KEYWORDS)) {
+    if (keywords.some((k) => lower.includes(k))) {
+      TONE_MAP[tone].forEach((id) => matchedIds.add(id));
+    }
+  }
+  return Array.from(matchedIds);
+}
+
+function personalizeTip(tip, aboutYou) {
+  const clean = (aboutYou || '').trim();
+  if (!clean) return tip;
+  return `${tip} Personal touch: work in "${clean}" — it makes the idea unmistakably yours.`;
+}
+
 function shuffle(array) {
   const arr = array.slice();
   for (let i = arr.length - 1; i > 0; i--) {
@@ -254,22 +292,38 @@ function shuffle(array) {
   return arr;
 }
 
-function generateIdeas(niche, count = 8, excludeIds = []) {
+function generateIdeas(niche, count = 8, excludeIds = [], profile = null) {
   const clean = niche.trim();
   if (!clean) return [];
 
   let pool = IDEA_TEMPLATES.filter((t) => !excludeIds.includes(t.id));
   if (pool.length < count) pool = IDEA_TEMPLATES.slice();
 
-  const picked = shuffle(pool).slice(0, count);
+  let picked;
+  const styleText = profile ? `${profile.vibe || ''} ${profile.tone || ''}` : '';
+  const preferredIds = styleText.trim() ? idsMatchingStyleText(styleText) : [];
 
-  return picked.map((t) => ({
+  if (preferredIds.length) {
+    const preferred = shuffle(pool.filter((t) => preferredIds.includes(t.id)));
+    const rest = shuffle(pool.filter((t) => !preferredIds.includes(t.id)));
+    picked = [...preferred, ...rest].slice(0, count);
+  } else {
+    picked = shuffle(pool).slice(0, count);
+  }
+
+  const aboutYou = profile ? profile.aboutYou : '';
+  // Only personalize a few ideas, not all of them — repeating the same
+  // "work in X" line on every card would feel spammy instead of useful.
+  const personalizeCount = aboutYou.trim() ? Math.min(3, picked.length) : 0;
+  const personalizeIndexes = new Set(shuffle(picked.map((_, i) => i)).slice(0, personalizeCount));
+
+  return picked.map((t, i) => ({
     id: t.id,
     category: t.category,
     title: t.title(clean),
     hook: t.hook(clean),
     why: t.why,
-    tip: t.tip,
+    tip: personalizeIndexes.has(i) ? personalizeTip(t.tip, aboutYou) : t.tip,
     niche: clean
   }));
 }

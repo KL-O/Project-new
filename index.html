@@ -24,6 +24,23 @@
       <div class="chips" id="exampleChips"></div>
     </section>
 
+    <details class="vibe-card">
+      <summary>Your Vibe <span class="vibe-subtitle">(optional — personalizes your ideas)</span></summary>
+      <div class="vibe-fields">
+        <label for="vibeInput">Your personality / vibe</label>
+        <input type="text" id="vibeInput" placeholder="e.g. sarcastic, high energy, calm and informative" />
+
+        <label for="toneInput">Tone you want ideas in</label>
+        <input type="text" id="toneInput" placeholder="e.g. funny, motivational, wholesome, edgy" />
+
+        <label for="aboutYouInput">Anything about you worth working into ideas</label>
+        <textarea id="aboutYouInput" rows="2" placeholder="e.g. I'm a new mom, I'm a college student, I grew up on a farm..."></textarea>
+
+        <button id="saveVibeBtn" type="button" class="secondary-btn">Save Vibe</button>
+        <span id="vibeSavedMsg" class="vibe-saved-msg" hidden>Saved ✓</span>
+      </div>
+    </details>
+
     <section class="results-header">
       <h2>Ideas</h2>
       <button id="regenerateBtn" type="button" class="secondary-btn" hidden>↻ New Set</button>

@@ -180,6 +180,88 @@ body {
   border-color: var(--accent);
 }
 
+.vibe-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 18px 24px;
+  margin-bottom: 32px;
+}
+
+.vibe-card summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.vibe-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.vibe-card summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--accent);
+  transition: transform 0.15s ease;
+}
+
+.vibe-card[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.vibe-subtitle {
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.vibe-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.vibe-fields label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 10px;
+}
+
+.vibe-fields label:first-child {
+  margin-top: 0;
+}
+
+.vibe-fields input,
+.vibe-fields textarea {
+  padding: 10px 12px;
+  background: #0f1115;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.vibe-fields input:focus,
+.vibe-fields textarea:focus {
+  outline: 2px solid var(--accent);
+}
+
+.vibe-fields .secondary-btn {
+  align-self: flex-start;
+  margin-top: 12px;
+}
+
+.vibe-saved-msg {
+  color: var(--star);
+  font-size: 0.85rem;
+  margin-left: 10px;
+}
+
 .results-header {
   display: flex;
   align-items: center;
