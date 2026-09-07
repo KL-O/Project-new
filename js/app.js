@@ -19,7 +19,8 @@ const aboutYouInput = document.getElementById('aboutYouInput');
 const saveVibeBtn = document.getElementById('saveVibeBtn');
 const vibeSavedMsg = document.getElementById('vibeSavedMsg');
 
-let lastShownIds = [];
+let lastShownIds = []; // just the immediately previous batch (hard-avoid, even on pool reset)
+let shownIds = []; // everything shown so far this session for the current niche (soft-avoid)
 let currentNiche = '';
 
 const SAVED_KEY = 'contentIdeaGenerator.savedIdeas';
@@ -112,14 +113,17 @@ function getProfile() {
 
 function runGenerate(niche) {
   currentNiche = niche;
-  const ideas = window.IdeaEngine.generateIdeas(niche, 8, [], getProfile());
-  lastShownIds = ideas.map((i) => i.id);
+  shownIds = [];
+  const ideas = window.IdeaEngine.generateIdeas(niche, 8, shownIds, getProfile(), lastShownIds);
+  shownIds = ideas.map((i) => i.id);
+  lastShownIds = shownIds.slice();
   renderIdeas(ideas);
 }
 
 function runRegenerate() {
   if (!currentNiche) return;
-  const ideas = window.IdeaEngine.generateIdeas(currentNiche, 8, lastShownIds, getProfile());
+  const ideas = window.IdeaEngine.generateIdeas(currentNiche, 8, shownIds, getProfile(), lastShownIds);
+  shownIds = [...new Set([...shownIds, ...ideas.map((i) => i.id)])];
   lastShownIds = ideas.map((i) => i.id);
   renderIdeas(ideas);
 }
