@@ -75,10 +75,18 @@ file that recreates that look, plus a plain-English settings readout for
 manual replication. Before/after slider preview, optionally on a different
 photo than the reference.
 
+Also has a per-editor import guide: a "Editing software" dropdown (Resolve,
+Premiere, Final Cut, CapCut Desktop/Mobile, Lightroom, other), persisted to
+localStorage, that swaps in accurate `.cube` import steps for whichever app
+is selected — and shows an honest warning instead of fake steps for apps
+that can't import custom LUTs at all (CapCut Mobile today), pointing back
+to the plain-English settings instead.
+
 Architecture (fully static, no backend for Phase 1):
 - `index.html`, `styles.css`, `js/colorMath.js` (the actual color pipeline
   + `.cube` file writer, 33³ grid), `js/imageAnalyzer.js` (canvas-based
-  pixel analysis → params), `js/app.js` (UI wiring)
+  pixel analysis → params), `js/softwareGuides.js` (per-editor import
+  steps), `js/app.js` (UI wiring)
 - Both the image-analysis path and the future text-description path are
   designed to feed the *same* `colorMath.js` pipeline — only the params
   source changes
