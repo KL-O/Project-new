@@ -14,7 +14,7 @@ async function generateIdeasAI(niche, profile, count) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 40000);
 
     const res = await fetch(AI_WORKER_URL, {
       method: 'POST',
