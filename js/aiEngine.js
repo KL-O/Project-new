@@ -7,7 +7,7 @@
 // Fill this in once the Worker (worker/src/index.js) is deployed to
 // Cloudflare Workers. Left blank, generation silently falls back to the
 // local template engine.
-const AI_WORKER_URL = '';
+const AI_WORKER_URL = 'https://content-idea-generator-api.kevinluvaotero.workers.dev/';
 
 async function generateIdeasAI(niche, profile) {
   if (!AI_WORKER_URL) return null;
