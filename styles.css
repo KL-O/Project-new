@@ -52,6 +52,38 @@ body::before {
 .page-header {
   text-align: center;
   padding: 56px 20px 28px;
+  position: relative;
+}
+
+.settings-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(36, 33, 28, 0.08), 0 6px 16px -8px rgba(36, 33, 28, 0.25);
+  transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+
+.settings-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px rgba(36, 33, 28, 0.1), 0 10px 20px -8px rgba(193, 80, 46, 0.3);
+}
+
+.settings-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-btn:active {
+  transform: scale(0.96);
 }
 
 .page-header h1 {
@@ -328,61 +360,159 @@ body::before {
   transform: scale(0.95);
 }
 
-/* Vibe card */
+/* Reliable-sources toggle */
 
-.vibe-card summary {
+label.sources-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
   cursor: pointer;
-  font-weight: 600;
-  list-style: none;
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 1.1rem;
+  user-select: none;
+  position: relative;
 }
 
-.vibe-card summary::-webkit-details-marker {
-  display: none;
+.sources-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
 }
 
-.vibe-card summary::before {
-  content: '▸';
+.toggle-track {
   display: inline-block;
-  margin-right: 8px;
-  color: var(--accent);
-  transition: transform 160ms var(--ease-out);
-  font-family: sans-serif;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  background: var(--border);
+  border-radius: 999px;
+  position: relative;
+  transition: background 160ms var(--ease-out);
 }
 
-.vibe-card[open] summary::before {
-  transform: rotate(90deg);
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--card);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(36, 33, 28, 0.3);
+  transition: transform 200ms var(--ease-out);
 }
 
-.vibe-subtitle {
-  color: var(--ink-dim);
-  font-weight: 400;
-  font-size: 0.85rem;
-  font-family: 'Inter', sans-serif;
+.sources-toggle input:checked ~ .toggle-track {
+  background: var(--accent-2);
 }
 
-.vibe-fields {
+.sources-toggle input:checked ~ .toggle-track .toggle-thumb {
+  transform: translateX(18px);
+}
+
+.sources-toggle input:focus-visible ~ .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sources-toggle-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 16px;
+  gap: 2px;
 }
 
-.vibe-fields label {
+.sources-toggle-sub {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-dim);
+}
+
+/* Settings modal */
+
+.settings-modal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  padding: 28px;
+  width: min(520px, calc(100vw - 40px));
+  box-shadow: 0 4px 8px rgba(36, 33, 28, 0.12), 0 24px 48px -16px rgba(36, 33, 28, 0.35);
+}
+
+.settings-modal::backdrop {
+  background: rgba(36, 33, 28, 0.45);
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+.close-settings-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: transform 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+
+.close-settings-btn:hover {
+  color: var(--ink);
+}
+
+.close-settings-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.close-settings-btn:active {
+  transform: scale(0.9);
+}
+
+.settings-intro {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  margin: 0 0 18px;
+}
+
+.settings-modal label {
+  display: block;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--ink-dim);
-  margin-top: 10px;
+  margin-top: 14px;
   font-family: 'Inter', sans-serif;
 }
 
-.vibe-fields label:first-child {
+.settings-modal label:first-of-type {
   margin-top: 0;
 }
 
-.vibe-fields input,
-.vibe-fields textarea {
+.settings-label-sub {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.settings-modal input,
+.settings-modal textarea {
+  width: 100%;
+  margin-top: 6px;
   padding: 10px 12px;
   background: var(--card-alt);
   border: 1px solid var(--border);
@@ -394,16 +524,43 @@ body::before {
   transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
 }
 
-.vibe-fields input:focus,
-.vibe-fields textarea:focus {
+.settings-modal input:focus,
+.settings-modal textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(193, 80, 46, 0.15);
 }
 
-.vibe-fields .secondary-btn {
-  align-self: flex-start;
-  margin-top: 12px;
+.settings-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 18px;
+}
+
+#saveVibeBtn {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), background 160ms var(--ease-out);
+}
+
+#saveVibeBtn:hover {
+  background: var(--accent-hover);
+}
+
+#saveVibeBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#saveVibeBtn:active {
+  transform: scale(0.97);
 }
 
 .vibe-saved-msg {

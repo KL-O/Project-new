@@ -11,6 +11,7 @@
 </head>
 <body>
   <header class="page-header">
+    <button id="settingsBtn" type="button" class="settings-btn" title="Settings" aria-label="Open settings">⚙ Settings</button>
     <h1>Never wonder what to <span class="highlight">post</span> again</h1>
     <p class="subtitle">Type your niche, get 8 ready-to-film ideas — pinned up and ready to steal.</p>
   </header>
@@ -32,25 +33,16 @@
           <button type="button" class="count-btn" data-count="9">9</button>
         </div>
       </div>
+      <label class="sources-toggle">
+        <input type="checkbox" id="sourcesToggle" />
+        <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+        <span class="sources-toggle-text">
+          Ground in reliable sources
+          <span class="sources-toggle-sub">Slower — checks a real source for health/fitness/finance-style claims</span>
+        </span>
+      </label>
       <div class="chips" id="exampleChips"></div>
     </section>
-
-    <details class="vibe-card">
-      <summary>Your Vibe <span class="vibe-subtitle">(optional — personalizes your ideas)</span></summary>
-      <div class="vibe-fields">
-        <label for="vibeInput">Your personality / vibe</label>
-        <input type="text" id="vibeInput" placeholder="e.g. sarcastic, high energy, calm and informative" />
-
-        <label for="toneInput">Tone you want ideas in</label>
-        <input type="text" id="toneInput" placeholder="e.g. funny, motivational, wholesome, edgy" />
-
-        <label for="aboutYouInput">Anything about you worth working into ideas</label>
-        <textarea id="aboutYouInput" rows="2" placeholder="e.g. I'm a new mom, I'm a college student, I grew up on a farm..."></textarea>
-
-        <button id="saveVibeBtn" type="button" class="secondary-btn">Save Vibe</button>
-        <span id="vibeSavedMsg" class="vibe-saved-msg" hidden>Saved ✓</span>
-      </div>
-    </details>
 
     <section class="results-header">
       <h2>Ideas</h2>
@@ -66,6 +58,28 @@
       <div id="savedList" class="saved-list"></div>
     </section>
   </main>
+
+  <dialog id="settingsModal" class="settings-modal">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button id="closeSettingsBtn" type="button" class="close-settings-btn" aria-label="Close settings">✕</button>
+    </div>
+    <p class="settings-intro">Tell it about yourself once — it'll shape the ideas and tips you get every time.</p>
+
+    <label for="vibeInput">Your personality / vibe</label>
+    <input type="text" id="vibeInput" placeholder="e.g. sarcastic, high energy, calm and informative" />
+
+    <label for="toneInput">Tone you want ideas in</label>
+    <input type="text" id="toneInput" placeholder="e.g. funny, motivational, wholesome, edgy" />
+
+    <label for="aboutYouInput">About you <span class="settings-label-sub">(go as long as you want)</span></label>
+    <textarea id="aboutYouInput" rows="10" placeholder="Tell it about yourself — your background, your audience, what makes your take different, things you always want worked into your content. A couple sentences or a couple paragraphs, whatever gives it the most to work with."></textarea>
+
+    <div class="settings-actions">
+      <button id="saveVibeBtn" type="button">Save Settings</button>
+      <span id="vibeSavedMsg" class="vibe-saved-msg" hidden>Saved ✓</span>
+    </div>
+  </dialog>
 
   <script src="js/ideaEngine.js"></script>
   <script src="js/aiEngine.js"></script>

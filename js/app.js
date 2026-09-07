@@ -19,11 +19,16 @@ const toneInput = document.getElementById('toneInput');
 const aboutYouInput = document.getElementById('aboutYouInput');
 const saveVibeBtn = document.getElementById('saveVibeBtn');
 const vibeSavedMsg = document.getElementById('vibeSavedMsg');
+const settingsBtn = document.getElementById('settingsBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const settingsModal = document.getElementById('settingsModal');
+const sourcesToggle = document.getElementById('sourcesToggle');
 
 let lastShownIds = []; // just the immediately previous batch (hard-avoid, even on pool reset)
 let shownIds = []; // everything shown so far this session for the current niche (soft-avoid)
 let currentNiche = '';
 let ideaCount = 6;
+let groundInSources = false;
 
 const SAVED_KEY = 'contentIdeaGenerator.savedIdeas';
 const PROFILE_KEY = 'contentIdeaGenerator.profile';
@@ -120,7 +125,7 @@ function setGenerating(isGenerating) {
 
 async function getIdeas(niche, excludeIds, hardExcludeIds) {
   const profile = getProfile();
-  const aiIdeas = await window.AiEngine.generateIdeasAI(niche, profile, ideaCount);
+  const aiIdeas = await window.AiEngine.generateIdeasAI(niche, profile, ideaCount, groundInSources);
   if (aiIdeas) return aiIdeas;
   // AI unavailable (no key configured yet, network issue, rate limited) —
   // fall back to the local template engine so generation never breaks.
@@ -218,8 +223,13 @@ countButtons.forEach((btn) => {
   });
 });
 
-// Your Vibe: optional personal profile that biases which idea formats get
-// picked and personalizes a couple of tips per generation.
+sourcesToggle.addEventListener('change', () => {
+  groundInSources = sourcesToggle.checked;
+});
+
+// Settings: personal profile (vibe/tone/about-you) that biases which idea
+// formats get picked and personalizes tips per generation. Lives in a modal
+// so it's actually discoverable instead of a buried collapsed section.
 function loadVibeForm() {
   const profile = getProfile();
   if (!profile) return;
@@ -227,6 +237,12 @@ function loadVibeForm() {
   toneInput.value = profile.tone || '';
   aboutYouInput.value = profile.aboutYou || '';
 }
+
+settingsBtn.addEventListener('click', () => settingsModal.showModal());
+closeSettingsBtn.addEventListener('click', () => settingsModal.close());
+settingsModal.addEventListener('click', (e) => {
+  if (e.target === settingsModal) settingsModal.close();
+});
 
 saveVibeBtn.addEventListener('click', () => {
   const profile = {

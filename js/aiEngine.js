@@ -9,12 +9,13 @@
 // local template engine.
 const AI_WORKER_URL = 'https://content-idea-generator-api.kevinluvaotero.workers.dev/';
 
-async function generateIdeasAI(niche, profile, count) {
+async function generateIdeasAI(niche, profile, count, groundInSources) {
   if (!AI_WORKER_URL) return null;
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 40000);
+    // Grounding in sources adds a real search round trip, so give it more room.
+    const timeout = setTimeout(() => controller.abort(), groundInSources ? 40000 : 20000);
 
     const res = await fetch(AI_WORKER_URL, {
       method: 'POST',
@@ -25,7 +26,8 @@ async function generateIdeasAI(niche, profile, count) {
         vibe: profile?.vibe || '',
         tone: profile?.tone || '',
         aboutYou: profile?.aboutYou || '',
-        count
+        count,
+        groundInSources: !!groundInSources
       })
     });
 
