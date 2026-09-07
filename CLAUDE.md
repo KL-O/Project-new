@@ -1,6 +1,7 @@
 # CLAUDE.md — Frontend Website Rules
 
 ## Always Do First
+- **Read `ROADMAP.md`** to see what's already built, live, and planned across every app in this repo before starting work.
 - **Invoke the `frontend-design` skill** before writing any frontend code, every session, no exceptions.
 
 ## Reference Images
