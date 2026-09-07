@@ -1,4 +1,3 @@
-<!-- sync test: pulled from PC on 2026-09-07, should be visible in VS Code after pulling -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,8 +17,10 @@
       <label for="nicheInput">What's your content about?</label>
       <div class="input-row">
         <input type="text" id="nicheInput" placeholder="e.g. skincare, personal finance, cooking, fitness..." />
+        <button id="micBtn" type="button" class="mic-btn" title="Speak your niche" aria-label="Speak your niche">🎤</button>
         <button id="generateBtn" type="button">Generate Ideas</button>
       </div>
+      <p id="micStatus" class="mic-status" hidden></p>
       <div class="chips" id="exampleChips"></div>
     </section>
 

@@ -4,6 +4,8 @@ const EXAMPLE_NICHES = ['skincare', 'personal finance', 'home cooking', 'fitness
 
 const nicheInput = document.getElementById('nicheInput');
 const generateBtn = document.getElementById('generateBtn');
+const micBtn = document.getElementById('micBtn');
+const micStatus = document.getElementById('micStatus');
 const regenerateBtn = document.getElementById('regenerateBtn');
 const ideasGrid = document.getElementById('ideasGrid');
 const emptyState = document.getElementById('emptyState');
@@ -169,6 +171,69 @@ nicheInput.addEventListener('keydown', (e) => {
 });
 
 regenerateBtn.addEventListener('click', runRegenerate);
+
+// Voice input: speak your niche instead of typing it.
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let isListening = false;
+
+function setMicStatus(text) {
+  if (!text) {
+    micStatus.hidden = true;
+    micStatus.textContent = '';
+    return;
+  }
+  micStatus.hidden = false;
+  micStatus.textContent = text;
+}
+
+function stopListening() {
+  isListening = false;
+  micBtn.classList.remove('listening');
+  setMicStatus('');
+}
+
+if (!SpeechRecognitionAPI) {
+  micBtn.classList.add('unsupported');
+  micBtn.title = 'Voice input is not supported in this browser — try Chrome or Edge';
+} else {
+  recognition = new SpeechRecognitionAPI();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.addEventListener('start', () => {
+    isListening = true;
+    micBtn.classList.add('listening');
+    setMicStatus('Listening... speak your niche');
+  });
+
+  recognition.addEventListener('result', (event) => {
+    const transcript = event.results[0][0].transcript.trim();
+    if (transcript) {
+      nicheInput.value = transcript;
+      runGenerate(transcript);
+    }
+  });
+
+  recognition.addEventListener('error', (event) => {
+    setMicStatus(event.error === 'not-allowed'
+      ? 'Microphone access denied — check your browser permissions'
+      : "Didn't catch that — try again");
+    setTimeout(() => setMicStatus(''), 2500);
+  });
+
+  recognition.addEventListener('end', stopListening);
+
+  micBtn.addEventListener('click', () => {
+    if (isListening) {
+      recognition.stop();
+      return;
+    }
+    nicheInput.classList.remove('error');
+    recognition.start();
+  });
+}
 
 renderExampleChips();
 renderSavedList();
