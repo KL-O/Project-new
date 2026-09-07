@@ -127,12 +127,15 @@ export default {
           messages: [{ role: 'user', content: userPromptLines.join('\n') }]
         })
       });
-    } catch {
-      return json({ error: 'AI service unreachable' }, 502, ALLOWED_ORIGIN);
+    } catch (err) {
+      console.error('Anthropic fetch failed:', err.message);
+      return json({ error: 'AI service unreachable', detail: err.message }, 502, ALLOWED_ORIGIN);
     }
 
     if (!aiResponse.ok) {
-      return json({ error: 'AI service error' }, 502, ALLOWED_ORIGIN);
+      const errBody = await aiResponse.text();
+      console.error('Anthropic API error:', aiResponse.status, errBody);
+      return json({ error: 'AI service error', status: aiResponse.status, detail: errBody.slice(0, 500) }, 502, ALLOWED_ORIGIN);
     }
 
     const aiData = await aiResponse.json();
