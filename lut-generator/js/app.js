@@ -19,11 +19,25 @@ const compareSlider = document.getElementById('compareSlider');
 
 const settingsList = document.getElementById('settingsList');
 const lutNameInput = document.getElementById('lutNameInput');
+const softwareSelect = document.getElementById('softwareSelect');
+const importGuide = document.getElementById('importGuide');
 const downloadBtn = document.getElementById('downloadBtn');
 
 const MAX_PREVIEW_WIDTH = 800;
+const SOFTWARE_KEY = 'lutGenerator.software';
 
 let currentParams = null;
+
+const savedSoftware = localStorage.getItem(SOFTWARE_KEY);
+if (savedSoftware && window.SoftwareGuides.SOFTWARE_GUIDES[savedSoftware]) {
+  softwareSelect.value = savedSoftware;
+}
+window.SoftwareGuides.renderImportGuide(importGuide, softwareSelect.value);
+
+softwareSelect.addEventListener('change', () => {
+  localStorage.setItem(SOFTWARE_KEY, softwareSelect.value);
+  window.SoftwareGuides.renderImportGuide(importGuide, softwareSelect.value);
+});
 
 function loadImageFromFile(file) {
   return new Promise((resolve, reject) => {
