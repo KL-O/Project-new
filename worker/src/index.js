@@ -21,8 +21,6 @@ const IDEAS_SCHEMA = {
   properties: {
     ideas: {
       type: 'array',
-      minItems: 8,
-      maxItems: 8,
       items: {
         type: 'object',
         properties: {
