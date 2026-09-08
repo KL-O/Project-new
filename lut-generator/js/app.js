@@ -35,19 +35,53 @@ const resetSlidersBtn = document.getElementById('resetSlidersBtn');
 const historySection = document.getElementById('historySection');
 const historyGrid = document.getElementById('historyGrid');
 
+const editingTabs = document.getElementById('editingTabs');
+const tabSubjectBtn = document.getElementById('tabSubjectBtn');
+const tabSceneBtn = document.getElementById('tabSceneBtn');
+
 const MAX_PREVIEW_WIDTH = 800;
 const SOFTWARE_KEY = 'lutGenerator.software';
 
 let refMedia = null;
 let previewMedia = null;
-let currentParams = null;
+let currentParams = null; // the "subject" params (or the only params, in single-region/whole-frame mode)
 let lastAnalyzedParams = null;
+let sceneParams = null; // set only once a subject region is drawn — "everything outside the box"
+let lastAnalyzedScene = null;
+let subjectHue = 200;
+let sceneHue = 30;
+let editingTarget = 'subject'; // which of currentParams/sceneParams the sliders currently edit
 let previewRAF = null;
 let sampleRegion = null; // { x0, y0, x1, y1 } fractions, or null = whole frame
 
 function cloneParams(p) {
   return { ...p, shadows: { ...p.shadows }, highlights: { ...p.highlights } };
 }
+
+function activeParams() {
+  return editingTarget === 'scene' && sceneParams ? sceneParams : currentParams;
+}
+
+function updateEditingTabs() {
+  editingTabs.hidden = !sceneParams;
+  tabSubjectBtn.classList.toggle('active', editingTarget === 'subject');
+  tabSceneBtn.classList.toggle('active', editingTarget === 'scene');
+}
+
+tabSubjectBtn.addEventListener('click', () => {
+  editingTarget = 'subject';
+  updateEditingTabs();
+  syncSlidersFromParams();
+  renderSettingsList(activeParams());
+});
+
+tabSceneBtn.addEventListener('click', () => {
+  if (!sceneParams) return;
+  editingTarget = 'scene';
+  updateEditingTabs();
+  syncSlidersFromParams();
+  renderSettingsList(activeParams());
+});
 
 // --- Software guide (persisted) ---
 
@@ -76,31 +110,31 @@ function renderSettingsList(params) {
 
 const SLIDER_CONFIG = [
   { el: document.getElementById('sldKelvin'), valEl: document.getElementById('valKelvin'),
-    get: () => currentParams.whiteBalanceKelvin, set: (v) => { currentParams.whiteBalanceKelvin = v; },
+    get: () => activeParams().whiteBalanceKelvin, set: (v) => { activeParams().whiteBalanceKelvin = v; },
     format: (v) => `${Math.round(v)}K` },
   { el: document.getElementById('sldTint'), valEl: document.getElementById('valTint'),
-    get: () => currentParams.tint, set: (v) => { currentParams.tint = v; },
+    get: () => activeParams().tint, set: (v) => { activeParams().tint = v; },
     format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
   { el: document.getElementById('sldExposure'), valEl: document.getElementById('valExposure'),
-    get: () => currentParams.exposure, set: (v) => { currentParams.exposure = v; },
+    get: () => activeParams().exposure, set: (v) => { activeParams().exposure = v; },
     format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)} EV` },
   { el: document.getElementById('sldContrast'), valEl: document.getElementById('valContrast'),
-    get: () => currentParams.contrast, set: (v) => { currentParams.contrast = v; },
+    get: () => activeParams().contrast, set: (v) => { activeParams().contrast = v; },
     format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
   { el: document.getElementById('sldSaturation'), valEl: document.getElementById('valSaturation'),
-    get: () => currentParams.saturation, set: (v) => { currentParams.saturation = v; },
+    get: () => activeParams().saturation, set: (v) => { activeParams().saturation = v; },
     format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
   { el: document.getElementById('sldShadowAmount'), valEl: document.getElementById('valShadowAmount'),
-    get: () => currentParams.shadows.amount, set: (v) => { currentParams.shadows.amount = v; },
+    get: () => activeParams().shadows.amount, set: (v) => { activeParams().shadows.amount = v; },
     format: (v) => `${Math.round(v)}%` },
   { el: document.getElementById('sldShadowHue'), valEl: document.getElementById('valShadowHue'),
-    get: () => currentParams.shadows.hue, set: (v) => { currentParams.shadows.hue = v; },
+    get: () => activeParams().shadows.hue, set: (v) => { activeParams().shadows.hue = v; },
     format: (v) => `${Math.round(v)}°` },
   { el: document.getElementById('sldHighlightAmount'), valEl: document.getElementById('valHighlightAmount'),
-    get: () => currentParams.highlights.amount, set: (v) => { currentParams.highlights.amount = v; },
+    get: () => activeParams().highlights.amount, set: (v) => { activeParams().highlights.amount = v; },
     format: (v) => `${Math.round(v)}%` },
   { el: document.getElementById('sldHighlightHue'), valEl: document.getElementById('valHighlightHue'),
-    get: () => currentParams.highlights.hue, set: (v) => { currentParams.highlights.hue = v; },
+    get: () => activeParams().highlights.hue, set: (v) => { activeParams().highlights.hue = v; },
     format: (v) => `${Math.round(v)}°` }
 ];
 
@@ -116,16 +150,21 @@ SLIDER_CONFIG.forEach(({ el, valEl, set, format }) => {
     const v = parseFloat(el.value);
     set(v);
     valEl.textContent = format(v);
-    renderSettingsList(currentParams);
+    renderSettingsList(activeParams());
     scheduleRenderPreview();
   });
 });
 
 resetSlidersBtn.addEventListener('click', () => {
-  if (!lastAnalyzedParams) return;
-  currentParams = cloneParams(lastAnalyzedParams);
+  if (editingTarget === 'scene') {
+    if (!lastAnalyzedScene) return;
+    sceneParams = cloneParams(lastAnalyzedScene);
+  } else {
+    if (!lastAnalyzedParams) return;
+    currentParams = cloneParams(lastAnalyzedParams);
+  }
   syncSlidersFromParams();
-  renderSettingsList(currentParams);
+  renderSettingsList(activeParams());
   renderComparePreview();
 });
 
@@ -151,7 +190,10 @@ function renderComparePreview() {
   const imageData = beforeCtx.getImageData(0, 0, beforeCanvas.width, beforeCanvas.height);
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
-    const [r, g, b] = window.ColorMath.transformPixel(data[i] / 255, data[i + 1] / 255, data[i + 2] / 255, currentParams);
+    const rIn = data[i] / 255, gIn = data[i + 1] / 255, bIn = data[i + 2] / 255;
+    const [r, g, b] = sceneParams
+      ? window.ColorMath.transformPixelDual(rIn, gIn, bIn, currentParams, sceneParams, subjectHue, sceneHue)
+      : window.ColorMath.transformPixel(rIn, gIn, bIn, currentParams);
     data[i] = Math.round(r * 255);
     data[i + 1] = Math.round(g * 255);
     data[i + 2] = Math.round(b * 255);
@@ -170,10 +212,23 @@ compareSlider.addEventListener('input', () => updateSliderPosition(compareSlider
 // --- Reference upload (image or video) ---
 
 async function reanalyzeReference() {
-  lastAnalyzedParams = window.ImageAnalyzer.analyzeMedia(refMedia, sampleRegion);
+  lastAnalyzedParams = window.ImageAnalyzer.analyzeMedia(refMedia, sampleRegion, false);
   currentParams = cloneParams(lastAnalyzedParams);
+  subjectHue = lastAnalyzedParams.avgHue;
+
+  if (sampleRegion) {
+    lastAnalyzedScene = window.ImageAnalyzer.analyzeMedia(refMedia, sampleRegion, true);
+    sceneParams = cloneParams(lastAnalyzedScene);
+    sceneHue = lastAnalyzedScene.avgHue;
+  } else {
+    lastAnalyzedScene = null;
+    sceneParams = null;
+  }
+
+  editingTarget = 'subject';
+  updateEditingTabs();
   syncSlidersFromParams();
-  renderSettingsList(currentParams);
+  renderSettingsList(activeParams());
 }
 
 async function refreshRefThumbnail() {
@@ -191,6 +246,9 @@ async function handleReferenceFile(file) {
   previewSourceLabel.textContent = 'your reference';
 
   sampleRegion = null;
+  sceneParams = null;
+  lastAnalyzedScene = null;
+  editingTarget = 'subject';
   selectBox.hidden = true;
   clearSelectionBtn.hidden = true;
   selectHint.hidden = false;
@@ -363,8 +421,7 @@ previewScrubSlider.addEventListener('input', () => {
 
 // --- Download ---
 
-function downloadCube(params, name) {
-  const cubeContent = window.ColorMath.generateCubeFile(params, name);
+function triggerCubeDownload(cubeContent, name) {
   const blob = new Blob([cubeContent], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -376,9 +433,22 @@ function downloadCube(params, name) {
   URL.revokeObjectURL(url);
 }
 
+function downloadCube(params, name) {
+  triggerCubeDownload(window.ColorMath.generateCubeFile(params, name), name);
+}
+
+function downloadCubeDual(subjectP, sceneP, subjHue, scnHue, name) {
+  triggerCubeDownload(window.ColorMath.generateCubeFileDual(subjectP, sceneP, subjHue, scnHue, name), name);
+}
+
 downloadBtn.addEventListener('click', () => {
   if (!currentParams) return;
-  downloadCube(currentParams, lutNameInput.value.trim() || 'My Custom Look');
+  const name = lutNameInput.value.trim() || 'My Custom Look';
+  if (sceneParams) {
+    downloadCubeDual(currentParams, sceneParams, subjectHue, sceneHue, name);
+  } else {
+    downloadCube(currentParams, name);
+  }
 });
 
 // --- Saved LUT history ---
@@ -408,14 +478,20 @@ function renderHistory() {
     card.querySelector('.history-load').addEventListener('click', () => {
       currentParams = cloneParams(entry.params);
       lastAnalyzedParams = cloneParams(entry.params);
+      sceneParams = entry.sceneParams ? cloneParams(entry.sceneParams) : null;
+      lastAnalyzedScene = sceneParams ? cloneParams(sceneParams) : null;
+      subjectHue = entry.subjectHue ?? 200;
+      sceneHue = entry.sceneHue ?? 30;
+      editingTarget = 'subject';
       lutNameInput.value = entry.name;
       if (entry.software) {
         softwareSelect.value = entry.software;
         localStorage.setItem(SOFTWARE_KEY, entry.software);
         window.SoftwareGuides.renderImportGuide(importGuide, entry.software);
       }
+      updateEditingTabs();
       syncSlidersFromParams();
-      renderSettingsList(currentParams);
+      renderSettingsList(activeParams());
       if (refMedia) {
         resultSection.hidden = false;
         renderComparePreview();
@@ -424,7 +500,11 @@ function renderHistory() {
     });
 
     card.querySelector('.history-download').addEventListener('click', () => {
-      downloadCube(entry.params, entry.name);
+      if (entry.sceneParams) {
+        downloadCubeDual(entry.params, entry.sceneParams, entry.subjectHue, entry.sceneHue, entry.name);
+      } else {
+        downloadCube(entry.params, entry.name);
+      }
     });
 
     card.querySelector('.history-delete').addEventListener('click', () => {
@@ -444,6 +524,9 @@ saveLutBtn.addEventListener('click', () => {
     id: `lut-${Date.now()}`,
     name,
     params: cloneParams(currentParams),
+    sceneParams: sceneParams ? cloneParams(sceneParams) : null,
+    subjectHue,
+    sceneHue,
     software: softwareSelect.value,
     createdAt: Date.now(),
     thumbnail

@@ -33,7 +33,7 @@
         <span class="frame-scrub-label">Pick a frame</span>
         <input type="range" id="refScrubSlider" min="0" max="100" value="50" step="0.1" aria-label="Reference video frame" />
       </div>
-      <p class="select-hint" id="selectHint" hidden>Click and drag on the image to sample colors from just that area (like your face, not the sky). <button id="clearSelectionBtn" type="button" class="link-btn" hidden>Use whole frame</button></p>
+      <p class="select-hint" id="selectHint" hidden>Click and drag on the image to mark your subject (like your face) — the rest of the scene gets graded separately and blended in by color, instead of one setting forcing itself onto everything. <button id="clearSelectionBtn" type="button" class="link-btn" hidden>Use whole frame</button></p>
       <button id="changeRefBtn" type="button" class="secondary-btn" hidden>Change image/video</button>
     </section>
 
@@ -59,6 +59,14 @@
       <div class="settings-card">
         <h2>Settings</h2>
         <p class="settings-sub">Auto-detected from your reference — fine-tune any of it below.</p>
+
+        <div class="editing-tabs" id="editingTabs" hidden>
+          <p class="editing-tabs-hint">Subject and the rest of the scene are graded separately and blended by color — fine-tune each side:</p>
+          <div class="editing-tabs-row">
+            <button type="button" class="editing-tab active" id="tabSubjectBtn">🧑 Subject</button>
+            <button type="button" class="editing-tab" id="tabSceneBtn">🏞 Rest of scene</button>
+          </div>
+        </div>
 
         <div class="sliders-section" id="slidersSection">
           <div class="slider-row">
