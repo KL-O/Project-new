@@ -64,9 +64,9 @@ Next steps (user's call, not started):
 ## 2. LUT Generator — `/lut-generator/`
 
 **Live**: https://kl-o.github.io/Project-new/lut-generator/
-**Status**: Phase 1 shipped, tested, and iterated on twice from real usage
-feedback. Phase 2 (text-description path) not started. User wants this for
-their own personal use too, not just as a product.
+**Status**: Phase 1 shipped, tested, and iterated on three times from real
+usage feedback. Phase 2 (text-description path) not started. User wants
+this for their own personal use too, not just as a product.
 
 What it does: upload a reference photo **or video** (movie still,
 screenshot, another creator's shot/clip) → analyzes its actual color (white
@@ -78,7 +78,11 @@ Every detected param is also a **live slider** — the auto-analysis is a
 starting point, not a black box; drag any slider and the preview/settings
 update in real time, with a one-click reset back to the auto-detected
 values. Saved LUTs persist to a "Your LUTs" section (localStorage) with
-Load/Download/Delete per entry.
+Load/Download/Delete per entry. You can also click-and-drag directly on the
+reference preview to restrict analysis to a specific region (e.g. a face,
+not the sky behind it) — persists across video frame scrubs, clears on a
+new upload; without a manual selection, analysis is center-weighted by
+default so it leans toward a typically-centered subject automatically.
 
 Also has a per-editor import guide: a "Editing software" dropdown (Resolve,
 Premiere, Final Cut, CapCut Desktop/Mobile, Lightroom, other), persisted to
@@ -95,10 +99,13 @@ Architecture (fully static, no backend for Phase 1):
   video frame seeking), `js/imageAnalyzer.js` (percentile-based pixel
   analysis → params — trims the extreme 5% of luma before averaging so
   clipped highlights/crushed shadows don't skew white balance/contrast/
-  saturation), `js/softwareGuides.js` (per-editor import steps),
+  saturation, center-weights color averaging by default, and restricts
+  everything including percentile cutoffs to a user-selected region when
+  one is given), `js/softwareGuides.js` (per-editor import steps),
   `js/lutHistory.js` (localStorage save/list/delete + thumbnail
   generation), `js/app.js` (UI wiring, including the 9-slider live
-  fine-tune panel throttled via requestAnimationFrame)
+  fine-tune panel throttled via requestAnimationFrame, and the drag-select
+  region overlay on the reference preview)
 - Both the image-analysis path and the future text-description path are
   designed to feed the *same* `colorMath.js` pipeline — only the params
   source changes
