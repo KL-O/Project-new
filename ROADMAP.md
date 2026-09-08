@@ -64,7 +64,7 @@ Next steps (user's call, not started):
 ## 2. LUT Generator — `/lut-generator/`
 
 **Live**: https://kl-o.github.io/Project-new/lut-generator/
-**Status**: Phase 1 shipped, tested, and iterated on three times from real
+**Status**: Phase 1 shipped, tested, and iterated on four times from real
 usage feedback. Phase 2 (text-description path) not started. User wants
 this for their own personal use too, not just as a product.
 
@@ -79,10 +79,24 @@ starting point, not a black box; drag any slider and the preview/settings
 update in real time, with a one-click reset back to the auto-detected
 values. Saved LUTs persist to a "Your LUTs" section (localStorage) with
 Load/Download/Delete per entry. You can also click-and-drag directly on the
-reference preview to restrict analysis to a specific region (e.g. a face,
-not the sky behind it) — persists across video frame scrubs, clears on a
-new upload; without a manual selection, analysis is center-weighted by
-default so it leans toward a typically-centered subject automatically.
+reference preview to mark a **subject** region (e.g. a face) — persists
+across video frame scrubs, clears on a new upload; without a manual
+selection, analysis is center-weighted by default so it leans toward a
+typically-centered subject automatically.
+
+Drawing a subject box does more than restrict analysis to it: it triggers
+**hue-qualified dual-region grading**. A single LUT is one uniform color
+transform, so a naive "sample from skin, apply everywhere" approach was
+always going to drag the sky/background along with the skin-tone
+correction — that's not fixable by better sampling, it's what a flat global
+LUT structurally is. Instead, once a subject box exists, "the rest of the
+scene" (everything outside the box) is automatically analyzed as a second,
+independent look, and the two are blended per output pixel by comparing
+that pixel's own hue to each region's average hue (a soft key/qualifier,
+not a hard cutout — this is the same technique colorists call a "secondary
+correction"). A tab switcher ("🧑 Subject" / "🏞 Rest of scene") appears
+once dual mode is active, and the same 9 sliders retarget to whichever tab
+is selected, each with independent state.
 
 Also has a per-editor import guide: a "Editing software" dropdown (Resolve,
 Premiere, Final Cut, CapCut Desktop/Mobile, Lightroom, other), persisted to
@@ -92,20 +106,24 @@ that can't import custom LUTs at all (CapCut Mobile today), pointing back
 to the plain-English settings instead.
 
 Architecture (fully static, no backend for Phase 1):
-- `index.html`, `styles.css`, `js/colorMath.js` (the actual color pipeline
-  + `.cube` file writer, 33³ grid), `js/mediaLoader.js` (normalizes an
-  uploaded image OR video into the same `{element, naturalWidth, ...}`
-  shape so analysis/preview/thumbnailing don't care which they got; handles
-  video frame seeking), `js/imageAnalyzer.js` (percentile-based pixel
-  analysis → params — trims the extreme 5% of luma before averaging so
-  clipped highlights/crushed shadows don't skew white balance/contrast/
-  saturation, center-weights color averaging by default, and restricts
-  everything including percentile cutoffs to a user-selected region when
-  one is given), `js/softwareGuides.js` (per-editor import steps),
-  `js/lutHistory.js` (localStorage save/list/delete + thumbnail
-  generation), `js/app.js` (UI wiring, including the 9-slider live
-  fine-tune panel throttled via requestAnimationFrame, and the drag-select
-  region overlay on the reference preview)
+- `index.html`, `styles.css`, `js/colorMath.js` (the color pipeline +
+  `.cube` file writer, 33³ grid; also owns `rgbToHsl`/`hueDistance`,
+  `transformPixelDual` and `generateCubeFileDual` for the hue-qualified
+  blend), `js/mediaLoader.js` (normalizes an uploaded image OR video into
+  the same `{element, naturalWidth, ...}` shape so analysis/preview/
+  thumbnailing don't care which they got; handles video frame seeking),
+  `js/imageAnalyzer.js` (percentile-based pixel analysis → params — trims
+  the extreme 5% of luma before averaging so clipped highlights/crushed
+  shadows don't skew white balance/contrast/saturation, center-weights
+  color averaging by default, restricts everything including percentile
+  cutoffs to a region when one is given — with an `invert` flag to read
+  "outside the box" for the scene half of dual mode — and returns a
+  circular-mean `avgHue` used as the dual blend's key), `js/softwareGuides.js`
+  (per-editor import steps), `js/lutHistory.js` (localStorage save/list/
+  delete + thumbnail generation, dual-mode-aware), `js/app.js` (UI wiring:
+  the 9-slider live fine-tune panel throttled via requestAnimationFrame,
+  retargetable between subject/scene via an `activeParams()` indirection;
+  the drag-select region overlay; the subject/scene tab switcher)
 - Both the image-analysis path and the future text-description path are
   designed to feed the *same* `colorMath.js` pipeline — only the params
   source changes
