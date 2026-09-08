@@ -12,28 +12,36 @@
 <body>
   <header class="page-header">
     <h1>Turn any look into a <span class="highlight">LUT</span></h1>
-    <p class="subtitle">Upload a reference photo — get a real .cube file built from its actual color, not a preset off a shelf.</p>
+    <p class="subtitle">Upload a reference photo or video — get a real .cube file built from its actual color, not a preset off a shelf.</p>
   </header>
 
   <main class="container">
     <section class="upload-card" id="uploadCard">
-      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a reference image">
-        <input type="file" id="refFileInput" accept="image/*" hidden />
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a reference image or video">
+        <input type="file" id="refFileInput" accept="image/*,video/*" hidden />
         <div class="dropzone-content" id="dropzoneEmpty">
           <div class="dropzone-icon">＋</div>
-          <p class="dropzone-title">Drop a reference image, or click to browse</p>
-          <p class="dropzone-sub">A screenshot, a movie still, a photo with the look you want</p>
+          <p class="dropzone-title">Drop a reference photo or video, or click to browse</p>
+          <p class="dropzone-sub">A screenshot, a movie still, a clip with the look you want</p>
         </div>
-        <img id="refPreviewImg" class="ref-preview-img" hidden alt="Reference image preview" />
+        <img id="refPreviewImg" class="ref-preview-img" hidden alt="Reference preview" />
       </div>
-      <button id="changeRefBtn" type="button" class="secondary-btn" hidden>Change image</button>
+      <div class="frame-scrub" id="refScrub" hidden>
+        <span class="frame-scrub-label">Pick a frame</span>
+        <input type="range" id="refScrubSlider" min="0" max="100" value="50" step="0.1" aria-label="Reference video frame" />
+      </div>
+      <button id="changeRefBtn" type="button" class="secondary-btn" hidden>Change image/video</button>
     </section>
 
     <section class="result-section" id="resultSection" hidden>
       <div class="compare-card">
         <h2>Before / After</h2>
-        <p class="compare-sub">Previewing on <span id="previewSourceLabel">your reference image</span>. <button id="uploadOwnPhotoBtn" type="button" class="link-btn">Preview on a different photo</button></p>
-        <input type="file" id="previewFileInput" accept="image/*" hidden />
+        <p class="compare-sub">Previewing on <span id="previewSourceLabel">your reference</span>. <button id="uploadOwnPhotoBtn" type="button" class="link-btn">Preview on different media</button></p>
+        <input type="file" id="previewFileInput" accept="image/*,video/*" hidden />
+        <div class="frame-scrub" id="previewScrub" hidden>
+          <span class="frame-scrub-label">Pick a frame</span>
+          <input type="range" id="previewScrubSlider" min="0" max="100" value="50" step="0.1" aria-label="Preview video frame" />
+        </div>
         <div class="compare-frame" id="compareFrame">
           <canvas id="beforeCanvas"></canvas>
           <canvas id="afterCanvas" class="after-canvas"></canvas>
@@ -46,7 +54,48 @@
 
       <div class="settings-card">
         <h2>Settings</h2>
-        <p class="settings-sub">What the LUT actually does, in plain English — punch these in by hand if you'd rather not import a file.</p>
+        <p class="settings-sub">Auto-detected from your reference — fine-tune any of it below.</p>
+
+        <div class="sliders-section" id="slidersSection">
+          <div class="slider-row">
+            <label for="sldKelvin">White balance <span class="slider-value" id="valKelvin"></span></label>
+            <input type="range" id="sldKelvin" min="3000" max="10000" step="50" />
+          </div>
+          <div class="slider-row">
+            <label for="sldTint">Tint <span class="slider-value" id="valTint"></span></label>
+            <input type="range" id="sldTint" min="-100" max="100" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldExposure">Exposure <span class="slider-value" id="valExposure"></span></label>
+            <input type="range" id="sldExposure" min="-2" max="2" step="0.05" />
+          </div>
+          <div class="slider-row">
+            <label for="sldContrast">Contrast <span class="slider-value" id="valContrast"></span></label>
+            <input type="range" id="sldContrast" min="-100" max="100" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldSaturation">Saturation <span class="slider-value" id="valSaturation"></span></label>
+            <input type="range" id="sldSaturation" min="-100" max="100" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldShadowAmount">Shadow tone amount <span class="slider-value" id="valShadowAmount"></span></label>
+            <input type="range" id="sldShadowAmount" min="0" max="60" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldShadowHue">Shadow tone hue <span class="slider-value" id="valShadowHue"></span></label>
+            <input type="range" id="sldShadowHue" class="hue-slider" min="0" max="360" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldHighlightAmount">Highlight tone amount <span class="slider-value" id="valHighlightAmount"></span></label>
+            <input type="range" id="sldHighlightAmount" min="0" max="60" step="1" />
+          </div>
+          <div class="slider-row">
+            <label for="sldHighlightHue">Highlight tone hue <span class="slider-value" id="valHighlightHue"></span></label>
+            <input type="range" id="sldHighlightHue" class="hue-slider" min="0" max="360" step="1" />
+          </div>
+          <button id="resetSlidersBtn" type="button" class="link-btn">↺ Reset to auto-detected</button>
+        </div>
+
         <div class="settings-list" id="settingsList"></div>
 
         <label for="lutNameInput">LUT name</label>
@@ -63,15 +112,25 @@
           <option value="other">Other / not sure</option>
         </select>
 
-        <button id="downloadBtn" type="button" class="download-btn">⬇ Download .cube</button>
+        <div class="action-row">
+          <button id="downloadBtn" type="button" class="download-btn">⬇ Download .cube</button>
+          <button id="saveLutBtn" type="button" class="save-btn">💾 Save</button>
+        </div>
         <div class="import-guide" id="importGuide"></div>
       </div>
+    </section>
+
+    <section class="history-section" id="historySection" hidden>
+      <h2>Your LUTs</h2>
+      <div class="history-grid" id="historyGrid"></div>
     </section>
   </main>
 
   <script src="js/colorMath.js"></script>
+  <script src="js/mediaLoader.js"></script>
   <script src="js/imageAnalyzer.js"></script>
   <script src="js/softwareGuides.js"></script>
+  <script src="js/lutHistory.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

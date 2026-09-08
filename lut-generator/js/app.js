@@ -5,15 +5,18 @@ const dropzoneEmpty = document.getElementById('dropzoneEmpty');
 const refFileInput = document.getElementById('refFileInput');
 const refPreviewImg = document.getElementById('refPreviewImg');
 const changeRefBtn = document.getElementById('changeRefBtn');
+const refScrub = document.getElementById('refScrub');
+const refScrubSlider = document.getElementById('refScrubSlider');
 
 const resultSection = document.getElementById('resultSection');
 const previewSourceLabel = document.getElementById('previewSourceLabel');
 const uploadOwnPhotoBtn = document.getElementById('uploadOwnPhotoBtn');
 const previewFileInput = document.getElementById('previewFileInput');
+const previewScrub = document.getElementById('previewScrub');
+const previewScrubSlider = document.getElementById('previewScrubSlider');
 
 const beforeCanvas = document.getElementById('beforeCanvas');
 const afterCanvas = document.getElementById('afterCanvas');
-const compareFrame = document.getElementById('compareFrame');
 const compareHandle = document.getElementById('compareHandle');
 const compareSlider = document.getElementById('compareSlider');
 
@@ -22,11 +25,26 @@ const lutNameInput = document.getElementById('lutNameInput');
 const softwareSelect = document.getElementById('softwareSelect');
 const importGuide = document.getElementById('importGuide');
 const downloadBtn = document.getElementById('downloadBtn');
+const saveLutBtn = document.getElementById('saveLutBtn');
+const resetSlidersBtn = document.getElementById('resetSlidersBtn');
+
+const historySection = document.getElementById('historySection');
+const historyGrid = document.getElementById('historyGrid');
 
 const MAX_PREVIEW_WIDTH = 800;
 const SOFTWARE_KEY = 'lutGenerator.software';
 
+let refMedia = null;
+let previewMedia = null;
 let currentParams = null;
+let lastAnalyzedParams = null;
+let previewRAF = null;
+
+function cloneParams(p) {
+  return { ...p, shadows: { ...p.shadows }, highlights: { ...p.highlights } };
+}
+
+// --- Software guide (persisted) ---
 
 const savedSoftware = localStorage.getItem(SOFTWARE_KEY);
 if (savedSoftware && window.SoftwareGuides.SOFTWARE_GUIDES[savedSoftware]) {
@@ -39,14 +57,7 @@ softwareSelect.addEventListener('change', () => {
   window.SoftwareGuides.renderImportGuide(importGuide, softwareSelect.value);
 });
 
-function loadImageFromFile(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
-}
+// --- Settings readout + sliders ---
 
 function renderSettingsList(params) {
   settingsList.innerHTML = '';
@@ -58,19 +69,76 @@ function renderSettingsList(params) {
   });
 }
 
-function drawScaled(imgEl, canvas) {
-  const scale = Math.min(1, MAX_PREVIEW_WIDTH / imgEl.naturalWidth);
-  const w = Math.round(imgEl.naturalWidth * scale);
-  const h = Math.round(imgEl.naturalHeight * scale);
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(imgEl, 0, 0, w, h);
-  return ctx;
+const SLIDER_CONFIG = [
+  { el: document.getElementById('sldKelvin'), valEl: document.getElementById('valKelvin'),
+    get: () => currentParams.whiteBalanceKelvin, set: (v) => { currentParams.whiteBalanceKelvin = v; },
+    format: (v) => `${Math.round(v)}K` },
+  { el: document.getElementById('sldTint'), valEl: document.getElementById('valTint'),
+    get: () => currentParams.tint, set: (v) => { currentParams.tint = v; },
+    format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
+  { el: document.getElementById('sldExposure'), valEl: document.getElementById('valExposure'),
+    get: () => currentParams.exposure, set: (v) => { currentParams.exposure = v; },
+    format: (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)} EV` },
+  { el: document.getElementById('sldContrast'), valEl: document.getElementById('valContrast'),
+    get: () => currentParams.contrast, set: (v) => { currentParams.contrast = v; },
+    format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
+  { el: document.getElementById('sldSaturation'), valEl: document.getElementById('valSaturation'),
+    get: () => currentParams.saturation, set: (v) => { currentParams.saturation = v; },
+    format: (v) => `${v >= 0 ? '+' : ''}${Math.round(v)}` },
+  { el: document.getElementById('sldShadowAmount'), valEl: document.getElementById('valShadowAmount'),
+    get: () => currentParams.shadows.amount, set: (v) => { currentParams.shadows.amount = v; },
+    format: (v) => `${Math.round(v)}%` },
+  { el: document.getElementById('sldShadowHue'), valEl: document.getElementById('valShadowHue'),
+    get: () => currentParams.shadows.hue, set: (v) => { currentParams.shadows.hue = v; },
+    format: (v) => `${Math.round(v)}°` },
+  { el: document.getElementById('sldHighlightAmount'), valEl: document.getElementById('valHighlightAmount'),
+    get: () => currentParams.highlights.amount, set: (v) => { currentParams.highlights.amount = v; },
+    format: (v) => `${Math.round(v)}%` },
+  { el: document.getElementById('sldHighlightHue'), valEl: document.getElementById('valHighlightHue'),
+    get: () => currentParams.highlights.hue, set: (v) => { currentParams.highlights.hue = v; },
+    format: (v) => `${Math.round(v)}°` }
+];
+
+function syncSlidersFromParams() {
+  SLIDER_CONFIG.forEach(({ el, valEl, get, format }) => {
+    el.value = get();
+    valEl.textContent = format(get());
+  });
 }
 
-function renderComparePreview(imgEl, params) {
-  const beforeCtx = drawScaled(imgEl, beforeCanvas);
+SLIDER_CONFIG.forEach(({ el, valEl, set, format }) => {
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    set(v);
+    valEl.textContent = format(v);
+    renderSettingsList(currentParams);
+    scheduleRenderPreview();
+  });
+});
+
+resetSlidersBtn.addEventListener('click', () => {
+  if (!lastAnalyzedParams) return;
+  currentParams = cloneParams(lastAnalyzedParams);
+  syncSlidersFromParams();
+  renderSettingsList(currentParams);
+  renderComparePreview();
+});
+
+// --- Compare preview ---
+
+function scheduleRenderPreview() {
+  if (previewRAF) return;
+  previewRAF = requestAnimationFrame(() => {
+    previewRAF = null;
+    renderComparePreview();
+  });
+}
+
+function renderComparePreview() {
+  const media = previewMedia || refMedia;
+  if (!media || !currentParams) return;
+
+  const beforeCtx = window.MediaLoader.drawMediaToCanvas(media, beforeCanvas, MAX_PREVIEW_WIDTH);
   afterCanvas.width = beforeCanvas.width;
   afterCanvas.height = beforeCanvas.height;
   const afterCtx = afterCanvas.getContext('2d');
@@ -78,7 +146,7 @@ function renderComparePreview(imgEl, params) {
   const imageData = beforeCtx.getImageData(0, 0, beforeCanvas.width, beforeCanvas.height);
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
-    const [r, g, b] = window.ColorMath.transformPixel(data[i] / 255, data[i + 1] / 255, data[i + 2] / 255, params);
+    const [r, g, b] = window.ColorMath.transformPixel(data[i] / 255, data[i + 1] / 255, data[i + 2] / 255, currentParams);
     data[i] = Math.round(r * 255);
     data[i + 1] = Math.round(g * 255);
     data[i + 2] = Math.round(b * 255);
@@ -94,19 +162,45 @@ function updateSliderPosition(value) {
 
 compareSlider.addEventListener('input', () => updateSliderPosition(compareSlider.value));
 
-async function handleReferenceFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const img = await loadImageFromFile(file);
+// --- Reference upload (image or video) ---
 
-  refPreviewImg.src = img.src;
+async function reanalyzeReference() {
+  lastAnalyzedParams = window.ImageAnalyzer.analyzeMedia(refMedia);
+  currentParams = cloneParams(lastAnalyzedParams);
+  syncSlidersFromParams();
+  renderSettingsList(currentParams);
+}
+
+async function refreshRefThumbnail() {
+  const thumbCanvas = document.createElement('canvas');
+  window.MediaLoader.drawMediaToCanvas(refMedia, thumbCanvas, 500);
+  refPreviewImg.src = thumbCanvas.toDataURL('image/jpeg', 0.85);
+}
+
+async function handleReferenceFile(file) {
+  if (!file || !(file.type.startsWith('image/') || file.type.startsWith('video/'))) return;
+
+  const media = await window.MediaLoader.loadMedia(file);
+  refMedia = media;
+  previewMedia = null;
+  previewSourceLabel.textContent = 'your reference';
+
+  await refreshRefThumbnail();
   refPreviewImg.hidden = false;
   dropzoneEmpty.hidden = true;
   changeRefBtn.hidden = false;
 
-  currentParams = window.ImageAnalyzer.analyzeImage(img);
-  renderSettingsList(currentParams);
-  renderComparePreview(img, currentParams);
-  previewSourceLabel.textContent = 'your reference image';
+  if (media.type === 'video') {
+    refScrub.hidden = false;
+    refScrubSlider.max = media.duration;
+    refScrubSlider.value = media.element.currentTime;
+  } else {
+    refScrub.hidden = true;
+  }
+  previewScrub.hidden = true;
+
+  await reanalyzeReference();
+  renderComparePreview();
   resultSection.hidden = false;
 }
 
@@ -137,23 +231,53 @@ changeRefBtn.addEventListener('click', (e) => {
   });
 });
 dropzone.addEventListener('drop', (e) => {
-  const file = e.dataTransfer.files[0];
-  handleReferenceFile(file);
+  handleReferenceFile(e.dataTransfer.files[0]);
 });
+
+let refScrubDebounce;
+refScrubSlider.addEventListener('input', () => {
+  clearTimeout(refScrubDebounce);
+  refScrubDebounce = setTimeout(async () => {
+    await window.MediaLoader.seekVideoTo(refMedia.element, parseFloat(refScrubSlider.value));
+    await refreshRefThumbnail();
+    await reanalyzeReference();
+    renderComparePreview();
+  }, 150);
+});
+
+// --- Optional secondary preview media ---
 
 uploadOwnPhotoBtn.addEventListener('click', () => previewFileInput.click());
 previewFileInput.addEventListener('change', async () => {
   const file = previewFileInput.files[0];
-  if (!file || !currentParams) return;
-  const img = await loadImageFromFile(file);
-  renderComparePreview(img, currentParams);
-  previewSourceLabel.textContent = 'your uploaded photo';
+  if (!file || !currentParams || !(file.type.startsWith('image/') || file.type.startsWith('video/'))) return;
+
+  previewMedia = await window.MediaLoader.loadMedia(file);
+  previewSourceLabel.textContent = 'your uploaded media';
+
+  if (previewMedia.type === 'video') {
+    previewScrub.hidden = false;
+    previewScrubSlider.max = previewMedia.duration;
+    previewScrubSlider.value = previewMedia.element.currentTime;
+  } else {
+    previewScrub.hidden = true;
+  }
+  renderComparePreview();
 });
 
-downloadBtn.addEventListener('click', () => {
-  if (!currentParams) return;
-  const name = lutNameInput.value.trim() || 'My Custom Look';
-  const cubeContent = window.ColorMath.generateCubeFile(currentParams, name);
+let previewScrubDebounce;
+previewScrubSlider.addEventListener('input', () => {
+  clearTimeout(previewScrubDebounce);
+  previewScrubDebounce = setTimeout(async () => {
+    await window.MediaLoader.seekVideoTo(previewMedia.element, parseFloat(previewScrubSlider.value));
+    renderComparePreview();
+  }, 150);
+});
+
+// --- Download ---
+
+function downloadCube(params, name) {
+  const cubeContent = window.ColorMath.generateCubeFile(params, name);
   const blob = new Blob([cubeContent], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -163,4 +287,87 @@ downloadBtn.addEventListener('click', () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+downloadBtn.addEventListener('click', () => {
+  if (!currentParams) return;
+  downloadCube(currentParams, lutNameInput.value.trim() || 'My Custom Look');
 });
+
+// --- Saved LUT history ---
+
+function renderHistory() {
+  const list = window.LutHistory.getHistory();
+  historySection.hidden = list.length === 0;
+  historyGrid.innerHTML = '';
+
+  list.forEach((entry) => {
+    const card = document.createElement('div');
+    card.className = 'history-card';
+    const dateStr = new Date(entry.createdAt).toLocaleDateString();
+    card.innerHTML = `
+      <img class="history-thumb" src="${entry.thumbnail}" alt="${entry.name}" />
+      <div class="history-body">
+        <p class="history-name">${entry.name}</p>
+        <p class="history-date">${dateStr}</p>
+        <div class="history-actions">
+          <button class="history-load" type="button">Load</button>
+          <button class="history-download" type="button">⬇</button>
+          <button class="history-delete" type="button">✕</button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector('.history-load').addEventListener('click', () => {
+      currentParams = cloneParams(entry.params);
+      lastAnalyzedParams = cloneParams(entry.params);
+      lutNameInput.value = entry.name;
+      if (entry.software) {
+        softwareSelect.value = entry.software;
+        localStorage.setItem(SOFTWARE_KEY, entry.software);
+        window.SoftwareGuides.renderImportGuide(importGuide, entry.software);
+      }
+      syncSlidersFromParams();
+      renderSettingsList(currentParams);
+      if (refMedia) {
+        resultSection.hidden = false;
+        renderComparePreview();
+      }
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    card.querySelector('.history-download').addEventListener('click', () => {
+      downloadCube(entry.params, entry.name);
+    });
+
+    card.querySelector('.history-delete').addEventListener('click', () => {
+      window.LutHistory.deleteHistoryEntry(entry.id);
+      renderHistory();
+    });
+
+    historyGrid.appendChild(card);
+  });
+}
+
+saveLutBtn.addEventListener('click', () => {
+  if (!currentParams) return;
+  const name = lutNameInput.value.trim() || 'My Custom Look';
+  const thumbnail = window.LutHistory.makeThumbnail(afterCanvas, 240);
+  window.LutHistory.saveHistoryEntry({
+    id: `lut-${Date.now()}`,
+    name,
+    params: cloneParams(currentParams),
+    software: softwareSelect.value,
+    createdAt: Date.now(),
+    thumbnail
+  });
+  renderHistory();
+  saveLutBtn.textContent = '✓ Saved';
+  saveLutBtn.classList.add('saved');
+  setTimeout(() => {
+    saveLutBtn.textContent = '💾 Save';
+    saveLutBtn.classList.remove('saved');
+  }, 1500);
+});
+
+renderHistory();
