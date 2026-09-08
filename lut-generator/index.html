@@ -24,12 +24,16 @@
           <p class="dropzone-title">Drop a reference photo or video, or click to browse</p>
           <p class="dropzone-sub">A screenshot, a movie still, a clip with the look you want</p>
         </div>
-        <img id="refPreviewImg" class="ref-preview-img" hidden alt="Reference preview" />
+        <div class="ref-preview-wrap" id="refPreviewWrap" hidden>
+          <img id="refPreviewImg" class="ref-preview-img" alt="Reference preview" />
+          <div class="select-box" id="selectBox" hidden></div>
+        </div>
       </div>
       <div class="frame-scrub" id="refScrub" hidden>
         <span class="frame-scrub-label">Pick a frame</span>
         <input type="range" id="refScrubSlider" min="0" max="100" value="50" step="0.1" aria-label="Reference video frame" />
       </div>
+      <p class="select-hint" id="selectHint" hidden>Click and drag on the image to sample colors from just that area (like your face, not the sky). <button id="clearSelectionBtn" type="button" class="link-btn" hidden>Use whole frame</button></p>
       <button id="changeRefBtn" type="button" class="secondary-btn" hidden>Change image/video</button>
     </section>
 

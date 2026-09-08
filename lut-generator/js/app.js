@@ -3,7 +3,11 @@
 const dropzone = document.getElementById('dropzone');
 const dropzoneEmpty = document.getElementById('dropzoneEmpty');
 const refFileInput = document.getElementById('refFileInput');
+const refPreviewWrap = document.getElementById('refPreviewWrap');
 const refPreviewImg = document.getElementById('refPreviewImg');
+const selectBox = document.getElementById('selectBox');
+const selectHint = document.getElementById('selectHint');
+const clearSelectionBtn = document.getElementById('clearSelectionBtn');
 const changeRefBtn = document.getElementById('changeRefBtn');
 const refScrub = document.getElementById('refScrub');
 const refScrubSlider = document.getElementById('refScrubSlider');
@@ -39,6 +43,7 @@ let previewMedia = null;
 let currentParams = null;
 let lastAnalyzedParams = null;
 let previewRAF = null;
+let sampleRegion = null; // { x0, y0, x1, y1 } fractions, or null = whole frame
 
 function cloneParams(p) {
   return { ...p, shadows: { ...p.shadows }, highlights: { ...p.highlights } };
@@ -165,7 +170,7 @@ compareSlider.addEventListener('input', () => updateSliderPosition(compareSlider
 // --- Reference upload (image or video) ---
 
 async function reanalyzeReference() {
-  lastAnalyzedParams = window.ImageAnalyzer.analyzeMedia(refMedia);
+  lastAnalyzedParams = window.ImageAnalyzer.analyzeMedia(refMedia, sampleRegion);
   currentParams = cloneParams(lastAnalyzedParams);
   syncSlidersFromParams();
   renderSettingsList(currentParams);
@@ -185,8 +190,13 @@ async function handleReferenceFile(file) {
   previewMedia = null;
   previewSourceLabel.textContent = 'your reference';
 
+  sampleRegion = null;
+  selectBox.hidden = true;
+  clearSelectionBtn.hidden = true;
+  selectHint.hidden = false;
+
   await refreshRefThumbnail();
-  refPreviewImg.hidden = false;
+  refPreviewWrap.hidden = false;
   dropzoneEmpty.hidden = true;
   changeRefBtn.hidden = false;
 
@@ -243,6 +253,83 @@ refScrubSlider.addEventListener('input', () => {
     await reanalyzeReference();
     renderComparePreview();
   }, 150);
+});
+
+// --- Drag-select a sample region on the reference (instead of the whole frame) ---
+
+function pointerFraction(e, el) {
+  const rect = el.getBoundingClientRect();
+  const point = e.touches ? e.touches[0] : e;
+  const xFrac = Math.min(1, Math.max(0, (point.clientX - rect.left) / rect.width));
+  const yFrac = Math.min(1, Math.max(0, (point.clientY - rect.top) / rect.height));
+  return { xFrac, yFrac };
+}
+
+function drawSelectBox(a, b) {
+  const x0 = Math.min(a.xFrac, b.xFrac) * 100;
+  const x1 = Math.max(a.xFrac, b.xFrac) * 100;
+  const y0 = Math.min(a.yFrac, b.yFrac) * 100;
+  const y1 = Math.max(a.yFrac, b.yFrac) * 100;
+  selectBox.style.left = `${x0}%`;
+  selectBox.style.top = `${y0}%`;
+  selectBox.style.width = `${x1 - x0}%`;
+  selectBox.style.height = `${y1 - y0}%`;
+}
+
+let dragging = false;
+let dragStart = null;
+
+function startSelect(e) {
+  if (refPreviewWrap.hidden) return;
+  dragging = true;
+  dragStart = pointerFraction(e, refPreviewImg);
+  selectBox.hidden = false;
+  drawSelectBox(dragStart, dragStart);
+  e.preventDefault();
+}
+
+function moveSelect(e) {
+  if (!dragging) return;
+  drawSelectBox(dragStart, pointerFraction(e, refPreviewImg));
+  e.preventDefault();
+}
+
+async function endSelect(e) {
+  if (!dragging) return;
+  dragging = false;
+  const end = pointerFraction(e.changedTouches ? { touches: e.changedTouches } : e, refPreviewImg);
+  const x0 = Math.min(dragStart.xFrac, end.xFrac);
+  const x1 = Math.max(dragStart.xFrac, end.xFrac);
+  const y0 = Math.min(dragStart.yFrac, end.yFrac);
+  const y1 = Math.max(dragStart.yFrac, end.yFrac);
+
+  if (x1 - x0 < 0.03 || y1 - y0 < 0.03) {
+    // too small to be an intentional drag — treat as clearing the selection
+    sampleRegion = null;
+    selectBox.hidden = true;
+    clearSelectionBtn.hidden = true;
+  } else {
+    sampleRegion = { x0, y0, x1, y1 };
+    clearSelectionBtn.hidden = false;
+  }
+  await reanalyzeReference();
+  renderComparePreview();
+}
+
+refPreviewImg.addEventListener('mousedown', startSelect);
+window.addEventListener('mousemove', moveSelect);
+window.addEventListener('mouseup', endSelect);
+refPreviewImg.addEventListener('touchstart', startSelect, { passive: false });
+window.addEventListener('touchmove', moveSelect, { passive: false });
+window.addEventListener('touchend', endSelect);
+
+clearSelectionBtn.addEventListener('click', async (e) => {
+  e.stopPropagation();
+  sampleRegion = null;
+  selectBox.hidden = true;
+  clearSelectionBtn.hidden = true;
+  await reanalyzeReference();
+  renderComparePreview();
 });
 
 // --- Optional secondary preview media ---
