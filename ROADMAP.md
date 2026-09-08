@@ -64,16 +64,21 @@ Next steps (user's call, not started):
 ## 2. LUT Generator — `/lut-generator/`
 
 **Live**: https://kl-o.github.io/Project-new/lut-generator/
-**Status**: Phase 1 shipped and tested. Phase 2 (text-description path) not
-started. User wants this for their own personal use too, not just as a
-product.
+**Status**: Phase 1 shipped, tested, and iterated on twice from real usage
+feedback. Phase 2 (text-description path) not started. User wants this for
+their own personal use too, not just as a product.
 
-What it does: upload a reference photo (movie still, screenshot, another
-creator's shot) → analyzes its actual color (white balance, contrast,
-saturation, shadow/highlight color cast) → generates a real `.cube` LUT
-file that recreates that look, plus a plain-English settings readout for
-manual replication. Before/after slider preview, optionally on a different
-photo than the reference.
+What it does: upload a reference photo **or video** (movie still,
+screenshot, another creator's shot/clip) → analyzes its actual color (white
+balance, contrast, saturation, shadow/highlight color cast) → generates a
+real `.cube` LUT file that recreates that look, plus a plain-English
+settings readout for manual replication. Before/after slider preview
+(labeled AFTER/BEFORE), optionally on different media than the reference.
+Every detected param is also a **live slider** — the auto-analysis is a
+starting point, not a black box; drag any slider and the preview/settings
+update in real time, with a one-click reset back to the auto-detected
+values. Saved LUTs persist to a "Your LUTs" section (localStorage) with
+Load/Download/Delete per entry.
 
 Also has a per-editor import guide: a "Editing software" dropdown (Resolve,
 Premiere, Final Cut, CapCut Desktop/Mobile, Lightroom, other), persisted to
@@ -84,9 +89,16 @@ to the plain-English settings instead.
 
 Architecture (fully static, no backend for Phase 1):
 - `index.html`, `styles.css`, `js/colorMath.js` (the actual color pipeline
-  + `.cube` file writer, 33³ grid), `js/imageAnalyzer.js` (canvas-based
-  pixel analysis → params), `js/softwareGuides.js` (per-editor import
-  steps), `js/app.js` (UI wiring)
+  + `.cube` file writer, 33³ grid), `js/mediaLoader.js` (normalizes an
+  uploaded image OR video into the same `{element, naturalWidth, ...}`
+  shape so analysis/preview/thumbnailing don't care which they got; handles
+  video frame seeking), `js/imageAnalyzer.js` (percentile-based pixel
+  analysis → params — trims the extreme 5% of luma before averaging so
+  clipped highlights/crushed shadows don't skew white balance/contrast/
+  saturation), `js/softwareGuides.js` (per-editor import steps),
+  `js/lutHistory.js` (localStorage save/list/delete + thumbnail
+  generation), `js/app.js` (UI wiring, including the 9-slider live
+  fine-tune panel throttled via requestAnimationFrame)
 - Both the image-analysis path and the future text-description path are
   designed to feed the *same* `colorMath.js` pipeline — only the params
   source changes
@@ -95,11 +107,20 @@ Architecture (fully static, no backend for Phase 1):
   Generator's warm paper-board look, teal/orange accent choice nods at the
   classic color-grading look the tool itself produces
 
-Fixed during build: `[hidden]` and an author rule setting `display`
-explicitly on the same element tie in CSS specificity, and author styles
-beat the browser's built-in `[hidden]` rule in that tie — added a global
-`[hidden] { display: none !important; }` reset. (Confirmed the Content Idea
-Generator doesn't share this bug.)
+Bugs fixed from real testing (worth knowing before touching this code):
+- `[hidden]` and an author rule setting `display` explicitly on the same
+  element tie in CSS specificity, and author styles beat the browser's
+  built-in `[hidden]` rule in that tie — added a global
+  `[hidden] { display: none !important; }` reset. (Confirmed the Content
+  Idea Generator doesn't share this bug.)
+- The shadow/highlight split-tone strength was scaled far too aggressively
+  (average saturation × 220, capped at 60%) — almost any real photo hit the
+  ceiling, producing a heavy wash-like tint across most of the tonal range
+  instead of a subtle grade (reported by the user as "a yellow transparency
+  thing"). Reduced the scale-up and ceiling, and cut the per-pixel blend
+  weight in the transform itself. This class of bug is exactly why the
+  fine-tune sliders got built next — a bad auto-detected default is now a
+  slider drag away from fixed, not a code change.
 
 Original pricing concept from planning (not yet built — no accounts/backend
 exist yet, this is aspirational for whenever monetization starts):
@@ -111,12 +132,15 @@ exist yet, this is aspirational for whenever monetization starts):
 - Optional one-off LUT pack sales ($15–25) as a non-subscription lead-in
 
 Next steps:
-1. User is about to test Phase 1 live and report back what needs fixing/adjusting
+1. User is testing the current build (sliders, video frames, saved
+   history) and reporting back what needs fixing/adjusting
 2. **Phase 2**: "describe it in words" path — new Cloudflare Worker (same
    security pattern as the idea generator's) that turns a text description
    into the same params shape `colorMath.js` already expects
 3. Monetization/accounts — later, same "validate before building" logic as
-   the idea generator
+   the idea generator. Saved LUT history is currently per-browser
+   (localStorage only) — real accounts would need a backend to sync it
+   across devices
 
 ---
 
